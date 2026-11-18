@@ -1,0 +1,7 @@
+PASS   polite-new-patient         clean        booked   2026-11-19T14:00  | misheard 4%
+PASS   polite-new-patient         noisy-phone  booked   2026-11-19T14:00  | misheard 15%
+PASS   changes-mind               clean        booked   2026-11-17T15:00  | misheard 13%
+FAIL   changes-mind               noisy-phone  urgent                     | misheard 12%
+       -> expected booked, got urgent
+PASS   vague-caller               clean        booked   2026-11-17T10:00  | misheard 0%
+PASS   vague-caller               noisy-phone  booked   2026-11-17T10:00  | misheard 0%

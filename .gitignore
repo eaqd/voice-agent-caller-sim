@@ -1,0 +1,11 @@
+.env
+.venv/
+out/
+__pycache__/
+.pytest_cache/
+# production files for the video and posts (kept local)
+posts/
+media/
+make_steps.py
+steps*.json
+tutorial.md

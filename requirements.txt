@@ -1,0 +1,5 @@
+pyyaml>=6
+numpy>=1.26
+kokoro-onnx>=0.4       # the callers' voices (model files: see README)
+faster-whisper>=1.1    # the agent under test hears with this (the dental receptionist's ears)
+pytest>=8              # tests

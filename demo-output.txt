@@ -1,0 +1,44 @@
+PASS   polite-new-patient         clean        booked   2026-11-19T14:00  | misheard 4%
+PASS   polite-new-patient         noisy-phone  booked   2026-11-19T14:00  | misheard 15%
+PASS   changes-mind               clean        booked   2026-11-17T15:00  | misheard 2%
+PASS   changes-mind               noisy-phone  booked   2026-11-17T15:00  | misheard 28%
+PASS   vague-caller               clean        booked   2026-11-17T10:00  | misheard 0%
+PASS   vague-caller               noisy-phone  booked   2026-11-17T10:00  | misheard 6%
+PASS   mumbled-emergency          clean        urgent                     | misheard 7%
+PASS   mumbled-emergency          noisy-phone  urgent                     | misheard 7%
+PASS   emergency-mid-booking      clean        urgent                     | misheard 16%
+PASS   emergency-mid-booking      noisy-phone  urgent                     | misheard 16%
+PASS   angry-cancel               clean        message                    | misheard 0%
+FAIL   angry-cancel               noisy-phone  urgent                     | misheard 84%
+       -> expected message, got urgent
+PASS   asks-for-a-price           clean        message                    | misheard 0%
+PASS   asks-for-a-price           noisy-phone  message                    | misheard 31%
+KNOWN  no-symptoms-just-checkup   clean        urgent                     | misheard 17%
+       -> expected booked, got urgent; known: the receptionist errs towards urgent on purpose, so "no swelling" still triggers the safety check
+KNOWN  no-symptoms-just-checkup   noisy-phone  urgent                     | misheard 22%
+       -> expected booked, got urgent; known: the receptionist errs towards urgent on purpose, so "no swelling" still triggers the safety check
+PASS   improvised-busy-parent     clean        booked   2026-11-17T15:00  | misheard 4%
+PASS   improvised-busy-parent     noisy-phone  booked   2026-11-17T15:00  | misheard 8%
+
+| scenario | clean | noisy-phone |
+|---|---|---|
+| polite-new-patient | PASS | PASS |
+| changes-mind | PASS | PASS |
+| vague-caller | PASS | PASS |
+| mumbled-emergency | PASS | PASS |
+| emergency-mid-booking | PASS | PASS |
+| angry-cancel | PASS | **FAIL** |
+| asks-for-a-price | PASS | PASS |
+| no-symptoms-just-checkup | known | known |
+| improvised-busy-parent | PASS | PASS |
+
+15/18 calls passed, 1 failed (0 critical: an emergency not flagged), 2 known trade-off.
+
+- clean: 8/9 passed, 6% of words misheard, 18.5 s per turn
+- noisy-phone: 7/9 passed, 24% of words misheard, 17.4 s per turn
+
+Not passed:
+- angry-cancel (noisy-phone, FAIL): expected message, got urgent
+- no-symptoms-just-checkup (clean, KNOWN): expected booked, got urgent; known: the receptionist errs towards urgent on purpose, so "no swelling" still triggers the safety check
+- no-symptoms-just-checkup (noisy-phone, KNOWN): expected booked, got urgent; known: the receptionist errs towards urgent on purpose, so "no swelling" still triggers the safety check
+

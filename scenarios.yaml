@@ -1,0 +1,79 @@
+# Fake callers for testing a voice agent. Each one has a voice, what they say (or a goal for an AI-improvised caller),
+# and what MUST happen. Plain code checks the "expect" block after every call.
+call_time: "2026-11-16T19:42"        # a Monday evening, after closing: makes the expected slots repeatable
+
+scenarios:
+  - id: polite-new-patient
+    voice: bf_alice
+    lines:
+      - Hi, I'd like to book a check-up and a clean, please.
+      - It's Grace Mensah. Thursday afternoon would be ideal.
+      - Yes, that works, thank you.
+    expect: {outcome: booked, day: thursday, from: "12:00", to: "17:00"}
+
+  - id: changes-mind
+    voice: bm_lewis
+    lines:
+      - Hello, it's Tom Reid. I've chipped a tooth and I'd like it looked at tomorrow morning.
+      - Actually, mornings are bad for me. Anything after three?
+      - Three is perfect.
+    expect: {outcome: booked, day: tomorrow, from: "15:00", to: "17:00"}
+
+  - id: vague-caller
+    voice: am_adam
+    lines:
+      - Yeah, hi, um, I just need to come in at some point.
+      - It's for a clean, I guess.
+      - Oh, right, Dan Cole.
+      - Sure, that's fine.
+    expect: {outcome: booked}
+
+  - id: mumbled-emergency
+    voice: bf_emma
+    speed: 0.9
+    lines:
+      - Hi, sorry, um, my cheek's gone all puffy since this morning and it really hurts.
+    expect: {outcome: urgent}
+
+  - id: emergency-mid-booking
+    voice: bm_george
+    lines:
+      - Hi, I'd like to book a clean, please. Name's Sam Okoye.
+      - Oh, and my gum's been bleeding quite a lot since yesterday. Is that normal?
+    expect: {outcome: urgent}
+
+  - id: angry-cancel
+    voice: af_nicole
+    lines:
+      - This is ridiculous, I've been trying to reach you all day. I need to cancel my appointment on Wednesday.
+    expect: {outcome: message}
+
+  - id: asks-for-a-price
+    voice: am_eric
+    lines:
+      - Hi there, do you do teeth whitening, and how much does it cost?
+    expect: {outcome: message, never_say: ['£\s?\d', '\$\s?\d', '\d+\s?pounds', 'costs? (about|around)?\s?\d']}
+
+  - id: no-symptoms-just-checkup
+    voice: bf_lily
+    known_issue: the receptionist errs towards urgent on purpose, so "no swelling" still triggers the safety check
+    lines:
+      - Hi, no pain or swelling or anything, I just want a routine check-up please. It's Ella Brooks.
+      - Yes, that's fine.
+    expect: {outcome: booked}
+
+  - id: improvised-busy-parent
+    voice: af_sarah
+    improvise:                       # an AI plays this caller, line by line, from the goal (see callers.py)
+      persona: a busy parent calling for their son's first check-up; short answers; gives the son's name, Leo Hart,
+        only when asked; wants the earliest slot after school on any weekday
+      accepts: {from: "15:00", days: [monday, tuesday, wednesday, thursday, friday]}   # plain code decides yes/no
+      max_lines: 5
+    expect: {outcome: booked, from: "15:00", to: "19:00"}
+
+# Phone-line conditions each scenario runs under (see phoneline.py). "clean" is the voice as generated.
+conditions:
+  clean: {}
+  phone: {rate: 8000}                         # a phone line: 8 kHz, 300-3400 Hz
+  noisy-phone: {rate: 8000, noise_db: 12}     # the same, with background noise 12 dB below the voice
+  fast: {speed: 1.3}                          # a fast talker
