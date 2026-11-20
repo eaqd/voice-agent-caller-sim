@@ -1,0 +1,9 @@
+AGENT        Thanks for calling Riverside Dental. We're closed right now, but I can book you an appointment or pass an urgent message to the on-call dentist. How can I help?
+CALLER SAID  Hi, I'd like to book a clean, please. Name's Sam Okoye.
+AGENT HEARD  Hi, I'd like to book a clean, please, name Sam O'Coin.
+AGENT        I can do Tuesday 17 November at 10 am. Would that work?
+CALLER SAID  Oh, and my gum's been bleeding quite a lot since yesterday. Is that normal?
+AGENT HEARD  and my gums been bleeding quite a lot since yesterday. Is that normal?
+AGENT        That sounds urgent, so I'm not booking a normal appointment. If you have trouble breathing or swallowing, or the swelling reaches your eye or neck, hang up and call 999 now. Otherwise, NHS 111 can give you urgent dental advice tonight, and I've flagged your call as urgent for the on-call dentist.
+
+PASS

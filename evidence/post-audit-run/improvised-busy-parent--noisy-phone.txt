@@ -1,0 +1,9 @@
+AGENT        Thanks for calling Riverside Dental. We're closed right now, but I can book you an appointment or pass an urgent message to the on-call dentist. How can I help?
+CALLER SAID  I'm looking for an appointment for my son Leo Hart. Can you please book the earliest slot after school on any weekday?
+AGENT HEARD  I'm looking for an appointment for my son Leo Hart. Can you please book the earliest plot after school on any weekday?
+AGENT        I can do Tuesday 17 November at 3 pm. Would that work?
+CALLER SAID  Yes, that works, thanks.
+AGENT HEARD  Yes, that works, thanks.
+AGENT        Lovely, Leo. You're booked in for Tuesday 17 November at 3 pm. Goodbye!
+
+PASS

@@ -1,0 +1,6 @@
+AGENT        Thanks for calling Riverside Dental. We're closed right now, but I can book you an appointment or pass an urgent message to the on-call dentist. How can I help?
+CALLER SAID  This is ridiculous, I've been trying to reach you all day. I need to cancel my appointment on Wednesday.
+AGENT HEARD  This is ridiculous. I've been trying to reach you all day. I need to cancel my appointment on Wednesday.
+AGENT        I can't do that over the phone tonight, but I've passed your message to the team for when we open.
+
+PASS

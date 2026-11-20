@@ -1,0 +1,6 @@
+AGENT        Thanks for calling Riverside Dental. We're closed right now, but I can book you an appointment or pass an urgent message to the on-call dentist. How can I help?
+CALLER SAID  Hi there, do you do teeth whitening, and how much does it cost?
+AGENT HEARD  Hi there do you do teeth whitening and how much does it cost?
+AGENT        I can't do that over the phone tonight, but I've passed your message to the team for when we open.
+
+PASS

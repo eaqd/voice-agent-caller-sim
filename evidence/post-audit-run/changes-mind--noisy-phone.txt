@@ -1,0 +1,15 @@
+AGENT        Thanks for calling Riverside Dental. We're closed right now, but I can book you an appointment or pass an urgent message to the on-call dentist. How can I help?
+CALLER SAID  Hello, it's Tom Reid. I've chipped a tooth and I'd like it looked at tomorrow morning.
+AGENT HEARD  Hello, it's Tom Reed. I've chipped a tooth and I'd like it looked at tomorrow course.
+AGENT        I can do Tuesday 17 November at 10 am. Would that work?
+CALLER SAID  Actually, mornings are bad for me. Anything after three?
+AGENT HEARD  Actually, calling the bad for anything after three.
+AGENT        I can do Tuesday 17 November at 3 pm. Would that work?
+CALLER SAID  Three is perfect.
+AGENT HEARD  The green is perfect.
+AGENT        Sorry, I didn't catch that. Would Tuesday 17 November at 3 pm work, or is there a better day or time?
+CALLER SAID  Three is perfect.
+AGENT HEARD  Three is perfect.
+AGENT        Lovely, Tom. You're booked in for Tuesday 17 November at 3 pm. Goodbye!
+
+PASS

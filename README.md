@@ -44,8 +44,10 @@ The real scorecard from the run in the video (9 callers x 2 phone lines, on a la
 ```
 
 This run came before the independent audit described under "What I tested". The audit's fixes make the judge
-stricter and have plain code speak the caller's "no" to a time that doesn't suit. A full audio re-run with those
-fixes is still to come (the PC it runs on was out of memory), and I'll add its scorecard here.
+stricter and have plain code speak the caller's "no" to a time that doesn't suit. I re-ran the full audio grid
+with those fixes on 2026-11-20 and got the same scorecard: 15/18 passed, the same FAIL (angry-cancel on the noisy
+line) and the same two KNOWN. Words misheard: 6% on the clean line, 22% on the noisy one; 11.3 s and 10.4 s per
+turn. Its transcripts and scorecard are in `evidence/post-audit-run/`.
 
 ## What it found in my own agent
 

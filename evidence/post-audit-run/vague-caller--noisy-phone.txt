@@ -1,0 +1,12 @@
+AGENT        Thanks for calling Riverside Dental. We're closed right now, but I can book you an appointment or pass an urgent message to the on-call dentist. How can I help?
+CALLER SAID  Yeah, hi, um, I just need to come in at some point.
+AGENT HEARD  Yeah, high arm. I just need to come in at some point.
+AGENT        Can I take your full name, please?
+CALLER SAID  It's for a clean, I guess.
+AGENT HEARD  It's for a clean, I guess.
+AGENT        I can do Tuesday 17 November at 10 am. Would that work?
+CALLER SAID  Oh, right, Dan Cole.
+AGENT HEARD  Oh, right, Dan Cole.
+AGENT        Lovely, It's. You're booked in for Tuesday 17 November at 10 am. Goodbye!
+
+PASS
