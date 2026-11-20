@@ -14,7 +14,7 @@ from pathlib import Path
 class DentalCall:
     def __init__(self, agent, started, out_dir: Path):
         self.agent, self.out = agent, Path(out_dir)
-        self.call = agent.desk.Call("+44 7700 900000", started)
+        self.call = agent.desk.Call("+44 7700 900000", started)  # fictional UK mobile number for the simulator
         self.greeting = self.call.said = agent.rules["greeting"]
 
     def hear(self, wav_path) -> str:

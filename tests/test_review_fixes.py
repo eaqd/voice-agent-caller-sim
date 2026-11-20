@@ -4,7 +4,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from test_bench import STARTED, FakeAgent, FakeCall, scenario
+from test_bench import STARTED, FakeAgent, FakeCall, FakeVoices, scenario
 
 import bench  # noqa: E402
 import callers  # noqa: E402
@@ -21,16 +21,14 @@ def test_each_call_starts_from_a_clean_folder(tmp_path):
 
 
 def test_one_crash_costs_one_call_not_the_run(tmp_path):
-    class CrashingCall(FakeCall):
-        def reply(self, text):
-            raise RuntimeError("voice model missing")
-    agents = iter([type("A", (), {"new_call": lambda self, s, o: CrashingCall()})(), FakeAgent()])
-
-    class Switch:
-        def new_call(self, s, o):
-            return next(agents).new_call(s, o)
-    rows = bench.run_all([scenario("polite-new-patient"), scenario("angry-cancel")], {"text": {}}, Switch(), STARTED,
-                         tmp_path, text_only=True)
+    class Voices(FakeVoices):
+        @staticmethod
+        def speak(text, voice, speed):
+            if "check-up" in text:
+                raise RuntimeError("voice model missing")
+            return FakeVoices.speak(text, voice, speed)
+    rows = bench.run_all([scenario("polite-new-patient"), scenario("angry-cancel")], {"clean": {}},
+                         FakeAgent(hear_as="cancel"), STARTED, tmp_path, voices=Voices)
     assert [r["status"] for r in rows] == ["ERROR", "PASS"]
     assert "the bench crashed" in rows[0]["fails"][0]
     assert "angry-cancel" in (tmp_path / "scorecard.md").read_text(encoding="utf-8")

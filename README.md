@@ -20,7 +20,7 @@ This bench phones your agent with fake callers before real ones do:
   finish in a sensible number of turns? An emergency that isn't flagged is CRITICAL.
 - **A scorecard**: every caller on every line, with the reason for each failure.
 
-The real scorecard from the final run (9 callers x 2 phone lines, on a laptop CPU):
+The real scorecard from the run in the video (9 callers x 2 phone lines, on a laptop CPU):
 
 ```
 | scenario | clean | noisy-phone |
@@ -40,6 +40,10 @@ The real scorecard from the final run (9 callers x 2 phone lines, on a laptop CP
 - noisy-phone: 7/9 passed, 24% of words misheard, 17.4 s per turn
 ```
 
+This run came before the independent audit described under "What I tested". The audit's fixes make the judge
+stricter and have plain code speak the caller's "no" to a time that doesn't suit. A full audio re-run with those
+fixes is still to come (the PC it runs on was out of memory), and I'll add its scorecard here.
+
 ## What it found in my own agent
 
 The receptionist from the last tutorial had 44 passing tests and a fresh code review. The fake callers still found:
@@ -53,7 +57,8 @@ The receptionist from the last tutorial had 44 passing tests and a fresh code re
    the AI called "I've chipped a tooth" an emergency. On the clean line it booked. Its instructions now follow
    ordinary dental triage.
 4. **Noise ate an angry caller's words, and the AI over-reacted.** On the noisy line only "This is ridiculous"
-   was heard of "This is ridiculous, I need to cancel my appointment on Wednesday", and the AI called it an
+   was heard of "This is ridiculous, I've been trying to reach you all day. I need to cancel my appointment on
+   Wednesday.", and the AI called it an
    emergency. I tried telling it that anger isn't an emergency; the small model ignored that. I didn't let code
    overrule it, because the rule is that the AI can raise the alarm but never lower it, and a false alarm is the
    safe direction. So it stays a FAIL on the scorecard: the next thing to fix.
@@ -61,9 +66,15 @@ The receptionist from the last tutorial had 44 passing tests and a fresh code re
 And one deliberate trade-off: it treats "no pain or swelling" as urgent, because it errs towards urgent. The bench
 marks that KNOWN, so it stays visible without failing the run.
 
-Three of the four are fixed in the receptionist, each with a test, and the bench passes them now. On the noisy line
-there's a nice moment in the final run: "Three is perfect" was heard as "The green is perfect", the receptionist
+Three of the four are fixed in the receptionist: the first two with unit tests, the third in the AI's instructions
+(a prompt has no unit test, so the bench's own run is its check). In the run above, the bench passes all three. On the noisy line
+there's a nice moment in that run: "Three is perfect" was heard as "The green is perfect", the receptionist
 asked again, the caller repeated it, and the call was booked.
+
+The evidence is in the repo: every call's transcript from the run above is in `evidence/video-run/`
+(`changes-mind--noisy-phone.txt` has "tomorrow course" and the "green is perfect" moment,
+`angry-cancel--noisy-phone.txt` the swallowed cancellation), and the chipped tooth called urgent, before the fix,
+is in `first-audio-run-output.txt`.
 
 ## Two honest answers before we build
 
@@ -81,21 +92,33 @@ the bugs you can find before launch; it doesn't replace listening to real calls.
    git clone https://github.com/eaqd/voice-agent-caller-sim
    git clone https://github.com/eaqd/dental-voice-receptionist
    ```
-2. In `voice-agent-caller-sim`:
-   ```
+2. Use Python 3.10+ in `voice-agent-caller-sim`. In PowerShell, run
+
+   ```powershell
    python -m venv .venv
-   .venv\Scripts\activate            (Mac/Linux: source .venv/bin/activate)
+   .\.venv\Scripts\Activate.ps1
+   pip install -r requirements.txt
+   ```
+
+   On macOS or Linux, run
+
+   ```sh
+   python3 -m venv .venv
+   source .venv/bin/activate
    pip install -r requirements.txt
    ```
 3. Free local AI: install Ollama (https://ollama.com), then `ollama pull qwen2.5:3b`. Voice: download
    `kokoro-v1.0.onnx` and `voices-v1.0.bin` from the "model-files-v1.0" release of
    https://github.com/thewh1teagle/kokoro-onnx/releases and set `KOKORO_DIR` in `.env` (copy `.env.example`).
+   The first audio run downloads the Whisper model (about 150 MB).
 4. Run it:
    ```
    python bench.py --text          # the agent's decisions only, about 2 minutes
    python bench.py                 # every caller on a clean and a noisy phone line, about 20 minutes
    ```
    Then open `out/scorecard.md`, and `out/runs/<caller>--<line>/` for each call's transcript and audio.
+
+The MIT licence covers this code. The separately downloaded models keep their own licences, including the Qwen Research licence for `qwen2.5:3b` and the respective Kokoro and Whisper licences.
 
 ## Step 1: the callers (`scenarios.yaml`)
 
@@ -145,14 +168,19 @@ The bench needs five things from an agent: a greeting, `hear(wav)`, `reply(text)
 
 ## What I tested, and what I didn't
 
-- `pytest`: 22 offline tests with stand-in agents, voices and AI: the scoring rules, the phone-line filters
+- `pytest`: 42 offline tests with stand-in agents, voices and AI: the scoring rules, the phone-line filters
   (measured, without an FFT), the callers, ERROR vs FAIL vs KNOWN, crash safety, and the adapter driving the real
-  receptionist. The receptionist's own tests went from 44 to 49 with the fixes the bench found.
-- Repeatability: two full runs gave identical results for every call the last change didn't touch.
-- The final run above: real speech (Kokoro), real phone-line degradation, the receptionist's real speech-to-text
+  receptionist. The receptionist's own tests went from 44 to 54 with the fixes the bench and the audit below found.
+- The run above: real speech (Kokoro), real phone-line degradation, the receptionist's real speech-to-text
   (faster-whisper) and local model (Ollama `qwen2.5:3b`), on a CPU-only Windows PC.
 - A fresh review before release found 13 problems in the bench and in my receptionist fix (the worst: the fix
-  could turn down a time the caller had accepted). All fixed, each with a test.
+  could turn down a time the caller had accepted). All fixed, with 9 tests in `tests/test_review_fixes.py`.
+- Then a second AI model (OpenAI Codex) audited both repos before publishing and found 13 more: a bad scenario name
+  could make the cleanup delete files outside `out/runs`; the judge passed a booking with no slot, a Saturday
+  booking for the weekday-only parent, and an emergency flagged before the caller mentioned it; an agent crash
+  was scored as a lab error; the caller misread "I can't do Tuesday at 3 pm" as an offer; spoken prices and
+  unquoted `15:30` in YAML slipped through; and my receptionist fix read "I don't want mornings" as a wish for
+  mornings. All fixed, each with a test that fails without its fix (`tests/test_audit_fixes.py` in both repos).
 - Not tested: real people, interruptions (the agent is turn-based), recorded street or office noise (the noise is
   synthetic), and a live phone line.
 

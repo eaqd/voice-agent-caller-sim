@@ -5,6 +5,7 @@ import os
 import re
 import urllib.request
 
+from checks import WEEKDAYS, hours
 
 ASKED_AGAIN = re.compile(r"didn't catch|say (it|that) again|repeat that|pardon", re.I)
 
@@ -35,42 +36,55 @@ def ollama_chat(messages: list[dict], model=None, host=None, timeout=120) -> str
         return json.loads(resp.read())["message"]["content"]
 
 
-WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 CLOCK = re.compile(r"\bat\s+(\d{1,2})(?::(\d\d))?\s*(am|pm)\b", re.I)
+NEGATED_SLOT = re.compile(r"\b(?:no|not|never|cannot|unavailable|taken|full|closed|booked|\w+n't)\b")
+CLAUSE_BREAK = re.compile(r"[.?!;]|\b(?:but|however)\b|(?:,|\band\b)\s*(?=(?:i|we|no|not|"
+                         + "|".join(WEEKDAYS) + r")\b)")
 
 
 def offered(agent_said: str):
     """The (weekday, hour) the agent just offered, read by plain code, e.g. ("tuesday", 15.5); else None.
-    The weekday is the last one named before the time, in the same sentence ("I can't do Monday, but I can do
-    Tuesday at 3 pm" is Tuesday)."""
-    text = (agent_said or "").replace("a.m.", "am").replace("p.m.", "pm")
-    for m in CLOCK.finditer(text):
-        sentence = re.split(r"[.?!]", text[:m.start()])[-1].lower()
-        days = [d for d in re.findall(r"[a-z]+", sentence) if d in WEEKDAYS]
-        if days:
-            hour = int(m.group(1)) % 12 + (12 if m.group(3).lower() == "pm" else 0)
-            return days[-1], hour + (int(m.group(2)) / 60 if m.group(2) else 0)
+    A time the receptionist rules out is never an offer."""
+    text = (agent_said or "").lower().replace("’", "'").replace("a.m.", "am").replace("p.m.", "pm")
+    for clause in CLAUSE_BREAK.split(text):
+        if NEGATED_SLOT.search(clause):
+            continue
+        for m in CLOCK.finditer(clause):
+            days = [d for d in re.findall(r"[a-z]+", clause[:m.start()]) if d in WEEKDAYS]
+            if days:
+                hour = int(m.group(1)) % 12 + (12 if m.group(3) == "pm" else 0)
+                return days[-1], hour + (int(m.group(2)) / 60 if m.group(2) else 0)
     return None
-
-
-def _hours(value) -> float:
-    """"15:00", "9:30" or 15 -> hours as a number (YAML reads an unquoted 15:00 as an integer)."""
-    if isinstance(value, (int, float)):
-        return float(value) if value <= 24 else float(value // 60)  # YAML 1.1 reads 15:00 as 900 (minutes)
-    h, _, m = str(value).strip().partition(":")
-    return int(h) + (int(m) / 60 if m else 0)
 
 
 def fits(offer, accepts: dict) -> bool:
     day, hour = offer
     days = [d.lower() for d in accepts.get("days", WEEKDAYS[:5])]
-    return day in days and _hours(accepts.get("from", "0:00")) <= hour < _hours(accepts.get("to", "24:00"))
+    return day in days and hours(accepts.get("from", "0:00")) <= hour < hours(accepts.get("to", "24:00"))
+
+
+def spoken_clock(value) -> str:
+    """15:00 or 15 -> "3 pm": the caller's line is spoken aloud, and a person says "3 pm", not "fifteen hundred"."""
+    h, m = divmod(round(hours(value) * 60) % (24 * 60), 60)
+    return f"{(h - 1) % 12 + 1}{f':{m:02d}' if m else ''} {'am' if h < 12 else 'pm'}"
+
+
+def decline(accepts: dict) -> str:
+    days = [d.lower() for d in accepts.get("days", WEEKDAYS[:5])]
+    when = "a weekday" if set(days) == set(WEEKDAYS[:5]) else " or ".join(d.title() for d in days)
+    wish = f"No, I want a slot on {when}"
+    if "from" in accepts and "to" in accepts:
+        wish += f" between {spoken_clock(accepts['from'])} and {spoken_clock(accepts['to'])}"
+    elif "from" in accepts:
+        wish += f" from {spoken_clock(accepts['from'])}"
+    elif "to" in accepts:
+        wish += f" before {spoken_clock(accepts['to'])}"
+    return wish + "."
 
 
 class ImprovisedCaller:
     """An AI plays the caller and writes the words. Whether to accept an offered time is NOT left to it: a small
-    model turned down 3 pm as "before 3 pm" on a real run. With an `accepts` rule, plain code decides and the AI
-    only phrases the yes or the no."""
+    model turned down 3 pm as "before 3 pm" on a real run. With an `accepts` rule, plain code answers the offer."""
 
     def __init__(self, persona: str, max_lines: int = 5, llm=ollama_chat, accepts: dict | None = None):
         self.persona, self.left, self.llm, self.accepts = persona, max_lines, llm, accepts
@@ -79,13 +93,12 @@ class ImprovisedCaller:
         if self.left <= 0:
             return None
         self.left -= 1
-        convo = "\n".join(f"{'Receptionist' if who == 'agent' else 'You'}: {text}"
-                          for who, text in history if who in ("agent", "caller said"))
-        decision = ""
         if self.accepts and (offer := offered(agent_said)):
             if fits(offer, self.accepts):
                 return "Yes, that works, thanks."  # a fitting offer gets a plain yes: no AI needed (it ignored "accept")
-            decision = "\nThe time just offered does not suit you: turn it down and say what you want."
+            return decline(self.accepts)
+        convo = "\n".join(f"{'Receptionist' if who == 'agent' else 'You'}: {text}"
+                          for who, text in history if who in ("agent", "caller said"))
         over = bool(re.search(r"\b(booked|goodbye)\b", agent_said or "", re.I))  # has the agent ended the call?
         for nudge in ("", "\nThe call is NOT over: answer the receptionist."):
             reply = self.llm([
@@ -94,7 +107,7 @@ class ImprovisedCaller:
                     f"{self.persona}. Answer only what the receptionist just asked, in one or two short spoken "
                     "sentences, with no stage directions. If the receptionist has booked you in or said goodbye, "
                     "reply with exactly END.")},
-                {"role": "user", "content": f"The call so far:\n{convo}\n{decision}{nudge}\nWhat do you say next?"}])
+                {"role": "user", "content": f"The call so far:\n{convo}\n{nudge}\nWhat do you say next?"}])
             line = reply.strip().splitlines()[0] if reply.strip() else ""
             line = re.sub(r"^(you|caller|me)\s*:\s*", "", line, flags=re.I).strip().strip('"')
             if re.search(r"\bEND\W*$", line):  # "I'll take it. END": say the words; hang up only if the call is over

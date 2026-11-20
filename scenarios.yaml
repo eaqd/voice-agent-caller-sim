@@ -40,7 +40,7 @@ scenarios:
     lines:
       - Hi, I'd like to book a clean, please. Name's Sam Okoye.
       - Oh, and my gum's been bleeding quite a lot since yesterday. Is that normal?
-    expect: {outcome: urgent}
+    expect: {outcome: urgent, urgent_after: bleeding}
 
   - id: angry-cancel
     voice: af_nicole
@@ -52,11 +52,21 @@ scenarios:
     voice: am_eric
     lines:
       - Hi there, do you do teeth whitening, and how much does it cost?
-    expect: {outcome: message, never_say: ['£\s?\d', '\$\s?\d', '\d+\s?pounds', 'costs? (about|around)?\s?\d']}
+    expect:
+      outcome: message
+      never_say:
+        - '[£$€]\s*\d'
+        - 'costs? (about|around)?\s?\d'
+        # The last number word also catches compound prices like "one hundred and twenty-five pounds".
+        - >-
+          (?x) \b(?: \d+(?:[.,]\d+)* | zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|
+          thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|
+          seventy|eighty|ninety|hundred|thousand|million ) \s* (?:pounds?|dollars?|quid|euros?)\b
 
   - id: no-symptoms-just-checkup
     voice: bf_lily
     known_issue: the receptionist errs towards urgent on purpose, so "no swelling" still triggers the safety check
+    known_failure: expected booked, got urgent
     lines:
       - Hi, no pain or swelling or anything, I just want a routine check-up please. It's Ella Brooks.
       - Yes, that's fine.
@@ -67,9 +77,9 @@ scenarios:
     improvise:                       # an AI plays this caller, line by line, from the goal (see callers.py)
       persona: a busy parent calling for their son's first check-up; short answers; gives the son's name, Leo Hart,
         only when asked; wants the earliest slot after school on any weekday
-      accepts: {from: "15:00", days: [monday, tuesday, wednesday, thursday, friday]}   # plain code decides yes/no
+      accepts: {from: "15:00", days: &weekdays [monday, tuesday, wednesday, thursday, friday]}   # plain code decides yes/no
       max_lines: 5
-    expect: {outcome: booked, from: "15:00", to: "19:00"}
+    expect: {outcome: booked, days: *weekdays, from: "15:00", to: "19:00"}
 
 # Phone-line conditions each scenario runs under (see phoneline.py). "clean" is the voice as generated.
 conditions:

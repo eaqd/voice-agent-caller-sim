@@ -1,0 +1,6 @@
+AGENT        Thanks for calling Riverside Dental. We're closed right now, but I can book you an appointment or pass an urgent message to the on-call dentist. How can I help?
+CALLER SAID  This is ridiculous, I've been trying to reach you all day. I need to cancel my appointment on Wednesday.
+AGENT HEARD  This is ridiculous.
+AGENT        That sounds urgent, so I'm not booking a normal appointment. If you have trouble breathing or swallowing, or the swelling reaches your eye or neck, hang up and call 999 now. Otherwise, NHS 111 can give you urgent dental advice tonight, and I've flagged your call as urgent for the on-call dentist.
+
+FAIL: expected message, got urgent

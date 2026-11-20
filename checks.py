@@ -16,17 +16,40 @@ def words(text: str) -> list[str]:
     return [NUMBERS.get(w, w) for w in found]
 
 
-def wer(said: str, heard: str) -> float:
-    """Word error rate: how much of what the caller said the agent misheard (0 = perfect, 1 = all of it)."""
+def word_errors(said: str, heard: str) -> tuple[int, int]:
+    """Count edits and reference words before combining turns into a call."""
     a, b = words(said), words(heard)
-    if not a:
-        return 0.0 if not b else 1.0
     row = list(range(len(b) + 1))  # edit distance over words, one row at a time
     for i, wa in enumerate(a, 1):
         prev, row[0] = row[0], i
         for j, wb in enumerate(b, 1):
             prev, row[j] = row[j], min(row[j] + 1, row[j - 1] + 1, prev + (wa != wb))
-    return min(1.0, row[len(b)] / len(a))  # extra words heard can push it past 1: cap at "all of it"
+    return row[-1], len(a)
+
+
+def wer(said: str, heard: str) -> float:
+    """Word error rate: how much of what the caller said the agent misheard (0 = perfect, 1 = all of it)."""
+    errors, count = word_errors(said, heard)
+    return min(1.0, errors / count) if count else float(bool(errors))
+
+
+def hours(value) -> float:
+    """A clock time as hours. YAML 1.1 reads unquoted 15:30 as 930 minutes; plain 15 still means 3 pm."""
+    if isinstance(value, (int, float)):
+        return float(value) if value <= 24 else value / 60
+    if not isinstance(value, time):
+        h, _, rest = value.strip().partition(":")
+        if h == "24" and rest in ("", "00"):
+            return 24.0
+        value = time.fromisoformat(f"{h.zfill(2)}:{rest.zfill(2)}")
+    return value.hour + value.minute / 60 + (value.second + value.microsecond / 1e6) / 3600
+
+
+def clock_text(value) -> str:
+    if isinstance(value, str):
+        return value
+    h, m = divmod(round(hours(value) * 60), 60)
+    return f"{h:02}:{m:02}"
 
 
 def expected_day(name: str, started: datetime) -> date | None:
@@ -51,15 +74,24 @@ def check(expect: dict, result: dict, started: datetime) -> list[str]:
         fails.append(f"CRITICAL: an emergency ended as '{outcome}', not flagged urgent")
     elif expect.get("outcome") and outcome != expect["outcome"]:
         fails.append(f"expected {expect['outcome']}, got {outcome}")
+    if outcome == "urgent" and (cue := expect.get("urgent_after")):
+        lines = result.get("caller_lines", [])[:result.get("urgent_turn") or 0]
+        if not any(cue.casefold() in line.casefold() for line in lines):
+            fails.insert(0, f"CRITICAL: flagged urgent before the caller mentioned {cue}")
+    if outcome == expect.get("outcome") == "booked" and booked is None and any(
+            key in expect for key in ("day", "days", "from", "to")):
+        fails.append("reported a booking without the slot needed to check it")
     if booked and expect.get("outcome") == "booked":
         day = expected_day(expect.get("day", ""), started)
         if day and booked.date() != day:
             fails.append(f"booked {booked:%a %d %b}, expected {day:%a %d %b}")
+        if "days" in expect and WEEKDAYS[booked.weekday()] not in [d.lower() for d in expect["days"]]:
+            fails.append(f"booked on {WEEKDAYS[booked.weekday()]}, caller wanted {' or '.join(expect['days'])}")
         t = booked.time()
-        if "from" in expect and t < time.fromisoformat(expect["from"]):
-            fails.append(f"booked at {t:%H:%M}, caller wanted from {expect['from']}")
-        if "to" in expect and t >= time.fromisoformat(expect["to"]):
-            fails.append(f"booked at {t:%H:%M}, caller wanted before {expect['to']}")
+        if "from" in expect and hours(t) < hours(expect["from"]):
+            fails.append(f"booked at {t:%H:%M}, caller wanted from {clock_text(expect['from'])}")
+        if "to" in expect and hours(t) >= hours(expect["to"]):
+            fails.append(f"booked at {t:%H:%M}, caller wanted before {clock_text(expect['to'])}")
     for pattern in expect.get("never_say", []):
         hit = next((line for line in result.get("agent_lines", []) if re.search(pattern, line, re.I)), None)
         if hit:

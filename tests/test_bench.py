@@ -210,8 +210,9 @@ def test_code_not_the_ai_decides_whether_an_offer_suits_the_caller():
     imp = callers.ImprovisedCaller("a parent", 5, lambda m: seen.append(m[1]["content"]) or "Okay.", rule)
     assert imp.next_line("I can do Tuesday 17 November at 3 pm. Would that work?", []) == "Yes, that works, thanks."
     assert seen == []  # a fitting offer never reaches the AI
-    imp.next_line("I can do Tuesday 17 November at 10 am. Would that work?", [])
-    assert "does not suit you" in seen[0]
+    decline = imp.next_line("I can do Tuesday 17 November at 10 am. Would that work?", [])
+    assert decline.startswith("No,") and "weekday" in decline and "from 3 pm" in decline
+    assert seen == []  # the AI cannot turn the refusal into a yes either
 
 
 def test_the_ai_caller_cannot_hang_up_mid_call():
