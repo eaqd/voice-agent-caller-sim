@@ -5,6 +5,9 @@
 > open build of the idea, written from scratch: free tools, every line explained, runs on a laptop. The agent it
 > tests is my after-hours dental receptionist (https://github.com/eaqd/dental-voice-receptionist).
 
+**Watch it:** the 90-second walkthrough, which opens with a real noisy-line call, https://youtu.be/Ehg4FBGbMmc
+and the 19-second Short https://youtube.com/shorts/dwWk1ffaUDY
+
 ## What you get
 
 Every voice-agent demo sounds great. Then a real caller mumbles, changes their mind, rings from a noisy street,
